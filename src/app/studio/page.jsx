@@ -114,7 +114,135 @@ export default function StudioPage() {
     DRUM_SOUNDS.map(() => ({ volume: 1, pan: 0, mute: false, solo: false }))
   );
   
-  // Recording
+  // Project name and background color
+  const [projectName, setProjectName] = useState('Untitled Project');
+  const [backgroundColor, setBackgroundColor] = useState('#f4ecdf');
+  const [savedProjects, setSavedProjects] = useState([]);
+  const [showProjectManager, setShowProjectManager] = useState(false);
+  
+  // Waveform dropdown state
+  const [showWaveformDropdown, setShowWaveformDropdown] = useState(false);
+  const waveformOptions = ['sine', 'square', 'sawtooth', 'triangle', 'fatsawtooth'];
+  const waveformRef = useRef(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (waveformRef.current && !waveformRef.current.contains(e.target)) {
+        setShowWaveformDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
+  // Theme state
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  
+  // Theme colors
+  const theme = isDarkTheme ? {
+    bg: '#1a1a2e',
+    panel: '#16213e',
+    panelBg: '#0f3460',
+    text: '#e94560',
+    textMuted: '#a0a0a0',
+    border: '#1e3a5f',
+    accent: '#0f3460',
+    buttonBg: '#16213e',
+    buttonActive: '#0f3460',
+    inputBg: '#0f3460',
+    stepOff: '#16213e',
+    stepOn: '#e94560',
+    stepHalf: '#5a7aa0'
+  } : {
+    bg: backgroundColor,
+    panel: '#fffdf9',
+    panelBg: '#f4ecdf',
+    text: '#5a4f43',
+    textMuted: '#8b7355',
+    border: '#d1c1af',
+    accent: '#8fb8a2',
+    buttonBg: '#fffdf9',
+    buttonActive: '#8fb8a2',
+    inputBg: '#fffdf9',
+    stepOff: '#e8e0d5',
+    stepOn: '#8fb8a2',
+    stepHalf: '#ffd166'
+  };
+  
+  // Load saved projects, background color, and theme on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('velora-studio-projects');
+    if (saved) {
+      setSavedProjects(JSON.parse(saved));
+    }
+    const savedBg = localStorage.getItem('velora-background-color');
+    if (savedBg) {
+      setBackgroundColor(savedBg);
+    }
+    const savedTheme = localStorage.getItem('velora-dark-theme');
+    if (savedTheme) {
+      setIsDarkTheme(JSON.parse(savedTheme));
+    }
+  }, []);
+  
+  // Save theme preference
+  useEffect(() => {
+    localStorage.setItem('velora-dark-theme', JSON.stringify(isDarkTheme));
+  }, [isDarkTheme]);
+  
+  // Save project to localStorage
+  const saveProjectToStorage = () => {
+    const projectData = {
+      id: Date.now().toString(),
+      name: projectName,
+      bpm,
+      swing,
+      patterns,
+      chain,
+      synthSettings,
+      effects,
+      mixer,
+      drumMixer,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    const existing = savedProjects.find(p => p.name === projectName);
+    let updated;
+    if (existing) {
+      updated = savedProjects.map(p => 
+        p.name === projectName ? { ...projectData, id: p.id } : p
+      );
+    } else {
+      updated = [...savedProjects, projectData];
+    }
+    
+    setSavedProjects(updated);
+    localStorage.setItem('velora-studio-projects', JSON.stringify(updated));
+    alert(`Project "${projectName}" saved!`);
+  };
+  
+  // Load project from localStorage
+  const loadProjectFromStorage = (project) => {
+    setProjectName(project.name);
+    setBpm(project.bpm);
+    setSwing(project.swing);
+    setPatterns(project.patterns);
+    setChain(project.chain);
+    setSynthSettings(project.synthSettings);
+    setEffects(project.effects);
+    setMixer(project.mixer);
+    setDrumMixer(project.drumMixer);
+    setShowProjectManager(false);
+  };
+  
+  // Delete project from localStorage
+  const deleteProject = (id) => {
+    const updated = savedProjects.filter(p => p.id !== id);
+    setSavedProjects(updated);
+    localStorage.setItem('velora-studio-projects', JSON.stringify(updated));
+  };
   const [isRecording, setIsRecording] = useState(false);
   const [recordedChunks, setRecordedChunks] = useState([]);
   
@@ -844,32 +972,59 @@ export default function StudioPage() {
   };
 
   return (
-    <main className="studio-page" style={{ minHeight: '100vh', backgroundColor: '#f4ecdf', padding: '2rem', fontFamily: 'Nunito, sans-serif' }}>
+    <main className="studio-page" style={{ 
+      minHeight: '100vh', 
+      backgroundColor: theme.bg, 
+      padding: '2rem', 
+      fontFamily: 'Nunito, sans-serif', 
+      color: theme.text,
+      '--slider-track-bg': isDarkTheme ? '#1e3a5f' : '#fffdf9',
+      '--slider-track-border': isDarkTheme ? '#0f3460' : '#d1c1af',
+      '--slider-thumb-bg': isDarkTheme ? '#e94560' : '#8fb8a2',
+      '--slider-thumb-border': isDarkTheme ? '#1e3a5f' : '#d1c1af',
+      '--slider-thumb-shadow': isDarkTheme ? '#0f3460' : '#d1c1af',
+    }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '2rem' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ margin: 0, color: '#5a4f43', fontSize: '2.5rem', fontWeight: 800 }}>Music Studio Pro</h1>
-            <p style={{ margin: '0.5rem 0 0 0', color: '#5a4f43', opacity: 0.6 }}>Advanced beat production environment</p>
+            <h1 style={{ margin: 0, color: theme.text, fontSize: '2.5rem', fontWeight: 800 }}>Music Studio Pro</h1>
+            <p style={{ margin: '0.5rem 0 0 0', color: theme.textMuted, opacity: 0.8 }}>Advanced beat production environment</p>
           </div>
           
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
+              onClick={() => setIsDarkTheme(!isDarkTheme)} 
+              className="cartoon-button"
+              style={{ backgroundColor: theme.buttonBg, color: theme.text }}
+              title={isDarkTheme ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+            >
+              {isDarkTheme ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              )}
+            </button>
+            <button 
               onClick={() => setShowMixer(!showMixer)} 
               className="cartoon-button"
-              style={{ backgroundColor: showMixer ? '#8fb8a2' : '#fffdf9' }}
+              style={{ backgroundColor: showMixer ? theme.buttonActive : theme.buttonBg, color: theme.text }}
             >
               Mixer
             </button>
             <button 
               onClick={() => setShowEffects(!showEffects)} 
               className="cartoon-button"
-              style={{ backgroundColor: showEffects ? '#8fb8a2' : '#fffdf9' }}
+              style={{ backgroundColor: showEffects ? theme.buttonActive : theme.buttonBg, color: theme.text }}
             >
               Effects
             </button>
             <Link href="/" style={{ textDecoration: 'none' }}>
-              <button className="cartoon-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button className="cartoon-button" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: theme.buttonBg, color: theme.text }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
@@ -879,13 +1034,100 @@ export default function StudioPage() {
           </div>
         </div>
 
+        <div className="cartoon-panel" style={{ padding: '1rem', marginBottom: '1rem', backgroundColor: theme.panel, borderColor: theme.border }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+              <span style={{ color: theme.text, fontWeight: 600 }}>Project:</span>
+              <input
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                style={{ 
+                  padding: '0.5rem', 
+                  borderRadius: '8px', 
+                  border: `3px solid ${theme.border}`, 
+                  backgroundColor: theme.inputBg,
+                  color: theme.text,
+                  fontFamily: 'Nunito, sans-serif',
+                  fontSize: '0.95rem',
+                  flex: 1,
+                  maxWidth: '300px'
+                }}
+                placeholder="Enter project name..."
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={saveProjectToStorage} className="cartoon-button" style={{ backgroundColor: theme.buttonBg, color: theme.text }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.25rem' }}>
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/>
+                </svg>
+                Save
+              </button>
+              <button onClick={() => setShowProjectManager(!showProjectManager)} className="cartoon-button" style={{ backgroundColor: theme.buttonBg, color: theme.text }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.25rem' }}>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                My Projects ({savedProjects.length})
+              </button>
+            </div>
+          </div>
+          
+          {showProjectManager && (
+            <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: theme.panelBg, borderRadius: '12px', border: `3px solid ${theme.border}` }}>
+              <h4 style={{ margin: '0 0 0.75rem 0', color: theme.text }}>Saved Projects</h4>
+              {savedProjects.length === 0 ? (
+                <p style={{ color: theme.textMuted, opacity: 0.6 }}>No saved projects yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {savedProjects.slice().reverse().map((project) => (
+                    <div key={project.id} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      padding: '0.75rem',
+                      backgroundColor: theme.panel,
+                      borderRadius: '8px',
+                      border: `2px solid ${theme.border}`
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 600, color: theme.text }}>{project.name}</span>
+                        <span style={{ fontSize: '0.75rem', color: theme.textMuted, opacity: 0.6 }}>
+                          Last updated: {new Date(project.updatedAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => loadProjectFromStorage(project)}
+                          className="cartoon-button"
+                          style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', backgroundColor: theme.buttonBg, color: theme.text }}
+                        >
+                          Load
+                        </button>
+                        <button 
+                          onClick={() => deleteProject(project.id)}
+                          className="cartoon-button"
+                          style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', backgroundColor: '#e74c3c', color: '#fff' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Visualizer */}
-        <div className="cartoon-panel" style={{ padding: '1rem', marginBottom: '1rem' }}>
+        <div className="cartoon-panel" style={{ padding: '1rem', marginBottom: '1rem', backgroundColor: theme.panel, borderColor: theme.border }}>
           {renderVisualizer()}
         </div>
 
         {/* Transport & Main Controls */}
-        <div className="cartoon-panel" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
+        <div className="cartoon-panel" style={{ padding: '1.5rem', marginBottom: '1rem', backgroundColor: theme.panel, borderColor: theme.border }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
@@ -893,7 +1135,7 @@ export default function StudioPage() {
                 className="cartoon-button"
                 style={{
                   padding: '1rem 1.5rem',
-                  backgroundColor: isPlaying ? '#e74c3c' : '#8fb8a2',
+                  backgroundColor: isPlaying ? '#e74c3c' : theme.accent,
                   color: '#fff',
                   fontSize: '1rem',
                   display: 'flex',
@@ -911,29 +1153,29 @@ export default function StudioPage() {
               <button
                 onClick={() => setCurrentStep(0)}
                 className="cartoon-button"
-                style={{ padding: '1rem', display: 'flex', alignItems: 'center' }}
+                style={{ padding: '1rem', display: 'flex', alignItems: 'center', backgroundColor: theme.buttonBg, color: theme.text }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
               </button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ color: '#5a4f43', fontWeight: 600 }}>BPM</span>
+              <span style={{ color: theme.text, fontWeight: 600 }}>BPM</span>
               <input
                 type="number"
                 min="40"
                 max="240"
                 value={bpm}
                 onChange={(e) => setBpm(parseInt(e.target.value))}
-                style={{ width: '60px', padding: '0.5rem', borderRadius: '8px', border: '3px solid #d1c1af', fontFamily: 'inherit' }}
+                style={{ width: '60px', padding: '0.5rem', borderRadius: '8px', border: `3px solid ${theme.border}`, fontFamily: 'inherit', backgroundColor: theme.inputBg, color: theme.text }}
               />
-              <button onClick={tapTempo} className="cartoon-button" style={{ fontSize: '0.8rem' }}>
+              <button onClick={tapTempo} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>
                 Tap
               </button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ color: '#5a4f43', fontWeight: 600 }}>Swing</span>
+              <span style={{ color: theme.text, fontWeight: 600 }}>Swing</span>
               <input
                 type="range"
                 min="0"
@@ -942,7 +1184,7 @@ export default function StudioPage() {
                 onChange={(e) => setSwing(parseInt(e.target.value) / 100)}
                 style={{ width: '80px' }}
               />
-              <span style={{ color: '#5a4f43', fontSize: '0.85rem', minWidth: '35px' }}>{Math.round(swing * 100)}%</span>
+              <span style={{ color: theme.text, fontSize: '0.85rem', minWidth: '35px' }}>{Math.round(swing * 100)}%</span>
             </div>
 
             <div style={{ display: 'flex', gap: '0.25rem', marginLeft: 'auto' }}>
@@ -954,8 +1196,8 @@ export default function StudioPage() {
                   style={{
                     padding: '0.5rem 0.75rem',
                     fontSize: '0.8rem',
-                    backgroundColor: activePattern === p ? '#8fb8a2' : '#fffdf9',
-                    color: activePattern === p ? '#fff' : '#5a4f43'
+                    backgroundColor: activePattern === p ? theme.accent : theme.buttonBg,
+                    color: activePattern === p ? '#fff' : theme.text
                   }}
                 >
                   {p}
@@ -973,17 +1215,17 @@ export default function StudioPage() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               className="cartoon-panel"
-              style={{ padding: '1.5rem', marginBottom: '1rem', overflow: 'hidden' }}
+              style={{ padding: '1.5rem', marginBottom: '1rem', overflow: 'hidden', backgroundColor: theme.panel, borderColor: theme.border }}
             >
-              <h3 style={{ margin: '0 0 1rem 0', color: '#5a4f43' }}>Master Effects</h3>
+              <h3 style={{ margin: '0 0 1rem 0', color: theme.text }}>Master Effects</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <input type="checkbox" checked={effects.reverb.enabled} onChange={(e) => setEffects({...effects, reverb: {...effects.reverb, enabled: e.target.checked}})} />
-                    <span style={{ color: '#5a4f43', fontWeight: 600 }}>Reverb</span>
+                    <span style={{ color: theme.text, fontWeight: 600 }}>Reverb</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#5a4f43' }}>Amount: {Math.round(effects.reverb.amount * 100)}%</span>
+                    <span style={{ fontSize: '0.8rem', color: theme.text }}>Amount: {Math.round(effects.reverb.amount * 100)}%</span>
                     <input type="range" min="0" max="100" value={effects.reverb.amount * 100} onChange={(e) => setEffects({...effects, reverb: {...effects.reverb, amount: parseInt(e.target.value) / 100}})} />
                   </div>
                 </div>
@@ -991,18 +1233,18 @@ export default function StudioPage() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <input type="checkbox" checked={effects.delay.enabled} onChange={(e) => setEffects({...effects, delay: {...effects.delay, enabled: e.target.checked}})} />
-                    <span style={{ color: '#5a4f43', fontWeight: 600 }}>Delay</span>
+                    <span style={{ color: theme.text, fontWeight: 600 }}>Delay</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#5a4f43' }}>Mix: {Math.round(effects.delay.amount * 100)}%</span>
+                    <span style={{ fontSize: '0.8rem', color: theme.text }}>Mix: {Math.round(effects.delay.amount * 100)}%</span>
                     <input type="range" min="0" max="100" value={effects.delay.amount * 100} onChange={(e) => setEffects({...effects, delay: {...effects.delay, amount: parseInt(e.target.value) / 100}})} />
                   </div>
                 </div>
 
                 <div>
-                  <span style={{ color: '#5a4f43', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Master Volume</span>
+                  <span style={{ color: theme.text, fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Master Volume</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.8rem' }}>{Math.round(mixer.master * 100)}%</span>
+                    <span style={{ fontSize: '0.8rem', color: theme.text }}>{Math.round(mixer.master * 100)}%</span>
                     <input type="range" min="0" max="150" value={mixer.master * 100} onChange={(e) => setMixer({...mixer, master: parseInt(e.target.value) / 100})} style={{ flex: 1 }} />
                   </div>
                 </div>
@@ -1019,12 +1261,12 @@ export default function StudioPage() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               className="cartoon-panel"
-              style={{ padding: '1.5rem', marginBottom: '1rem', overflow: 'hidden' }}
+              style={{ padding: '1.5rem', marginBottom: '1rem', overflow: 'hidden', backgroundColor: theme.panel, borderColor: theme.border }}
             >
-              <h3 style={{ margin: '0 0 1rem 0', color: '#5a4f43' }}>Drum Mixer</h3>
+              <h3 style={{ margin: '0 0 1rem 0', color: theme.text }}>Drum Mixer</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '0.75rem' }}>
                 {DRUM_SOUNDS.map((sound, i) => (
-                  <div key={sound.name} style={{ padding: '0.75rem', backgroundColor: '#fffdf9', borderRadius: '12px', border: '3px solid #d1c1af' }}>
+                  <div key={sound.name} style={{ padding: '0.75rem', backgroundColor: theme.panelBg, borderRadius: '12px', border: `3px solid ${theme.border}` }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: sound.color, marginBottom: '0.5rem', textAlign: 'center' }}>
                       {sound.name}
                     </div>
@@ -1035,10 +1277,10 @@ export default function StudioPage() {
                           flex: 1,
                           padding: '0.25rem',
                           fontSize: '0.65rem',
-                          border: '2px solid #d1c1af',
+                          border: `2px solid ${theme.border}`,
                           borderRadius: '4px',
-                          backgroundColor: drumMixer[i].mute ? '#e74c3c' : '#fffdf9',
-                          color: drumMixer[i].mute ? '#fff' : '#5a4f43',
+                          backgroundColor: drumMixer[i].mute ? '#e74c3c' : theme.buttonBg,
+                          color: drumMixer[i].mute ? '#fff' : theme.text,
                           cursor: 'pointer'
                         }}
                       >M</button>
@@ -1048,10 +1290,10 @@ export default function StudioPage() {
                           flex: 1,
                           padding: '0.25rem',
                           fontSize: '0.65rem',
-                          border: '2px solid #d1c1af',
+                          border: `2px solid ${theme.border}`,
                           borderRadius: '4px',
-                          backgroundColor: drumMixer[i].solo ? '#ffd166' : '#fffdf9',
-                          color: '#5a4f43',
+                          backgroundColor: drumMixer[i].solo ? '#ffd166' : theme.buttonBg,
+                          color: theme.text,
                           cursor: 'pointer'
                         }}
                       >S</button>
@@ -1077,8 +1319,8 @@ export default function StudioPage() {
             onClick={() => setActiveTab('drums')}
             className="cartoon-button"
             style={{
-              backgroundColor: activeTab === 'drums' ? '#8fb8a2' : '#fffdf9',
-              color: activeTab === 'drums' ? '#fff' : '#5a4f43'
+              backgroundColor: activeTab === 'drums' ? theme.accent : theme.buttonBg,
+              color: activeTab === 'drums' ? '#fff' : theme.text
             }}
           >
             Drum Machine
@@ -1087,8 +1329,8 @@ export default function StudioPage() {
             onClick={() => setActiveTab('melody')}
             className="cartoon-button"
             style={{
-              backgroundColor: activeTab === 'melody' ? '#8fb8a2' : '#fffdf9',
-              color: activeTab === 'melody' ? '#fff' : '#5a4f43'
+              backgroundColor: activeTab === 'melody' ? theme.accent : theme.buttonBg,
+              color: activeTab === 'melody' ? '#fff' : theme.text
             }}
           >
             Synthesizer
@@ -1096,26 +1338,62 @@ export default function StudioPage() {
           
           {activeTab === 'melody' && (
             <>
-              <select
-                value={synthSettings.waveform}
-                onChange={(e) => setSynthSettings({...synthSettings, waveform: e.target.value})}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '12px',
-                  border: '3px solid #d1c1af',
-                  fontFamily: 'inherit',
-                  backgroundColor: '#fffdf9',
-                  color: '#5a4f43'
-                }}
-              >
-                <option value="sine">Sine</option>
-                <option value="square">Square</option>
-                <option value="sawtooth">Sawtooth</option>
-                <option value="triangle">Triangle</option>
-                <option value="fatsawtooth">Fat Saw</option>
-              </select>
+              <div ref={waveformRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowWaveformDropdown(!showWaveformDropdown)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '12px',
+                    border: `3px solid ${theme.border}`,
+                    fontFamily: 'inherit',
+                    backgroundColor: theme.inputBg,
+                    color: theme.text,
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    textTransform: 'capitalize'
+                  }}
+                >
+                  {synthSettings.waveform}
+                </button>
+                {showWaveformDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    left: 0,
+                    backgroundColor: theme.panel,
+                    border: `2px solid ${theme.border}`,
+                    borderRadius: '8px',
+                    zIndex: 1000,
+                    minWidth: '120px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                  }}>
+                    {waveformOptions.map((option) => (
+                      <div
+                        key={option}
+                        onClick={() => {
+                          setSynthSettings({...synthSettings, waveform: option});
+                          setShowWaveformDropdown(false);
+                        }}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          cursor: 'pointer',
+                          textTransform: 'capitalize',
+                          color: theme.text,
+                          backgroundColor: synthSettings.waveform === option ? theme.buttonActive : theme.panel,
+                          borderBottom: `1px solid ${theme.border}`,
+                          borderRadius: option === waveformOptions[0] ? '6px 6px 0 0' : option === waveformOptions[waveformOptions.length - 1] ? '0 0 6px 6px' : '0'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = theme.buttonActive}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = synthSettings.waveform === option ? theme.buttonActive : theme.panel}
+                      >
+                        {option}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#5a4f43', fontSize: '0.9rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: theme.text, fontSize: '0.9rem' }}>
                 <input
                   type="checkbox"
                   checked={synthSettings.polyphony}
@@ -1127,17 +1405,17 @@ export default function StudioPage() {
           )}
           
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
-            <button onClick={undo} className="cartoon-button" style={{ fontSize: '0.8rem' }}>Undo</button>
-            <button onClick={redo} className="cartoon-button" style={{ fontSize: '0.8rem' }}>Redo</button>
-            <button onClick={copyPattern} className="cartoon-button" style={{ fontSize: '0.8rem' }}>Copy</button>
-            <button onClick={pastePattern} className="cartoon-button" style={{ fontSize: '0.8rem' }}>Paste</button>
-            <button onClick={clearPattern} className="cartoon-button" style={{ fontSize: '0.8rem' }}>Clear</button>
-            <button onClick={randomizePattern} className="cartoon-button" style={{ fontSize: '0.8rem' }}>Random</button>
+            <button onClick={undo} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>Undo</button>
+            <button onClick={redo} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>Redo</button>
+            <button onClick={copyPattern} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>Copy</button>
+            <button onClick={pastePattern} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>Paste</button>
+            <button onClick={clearPattern} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>Clear</button>
+            <button onClick={randomizePattern} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>Random</button>
           </div>
         </div>
 
         {/* Sequencer Grid */}
-        <div className="cartoon-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
+        <div className="cartoon-panel" style={{ padding: '1.5rem', overflowX: 'auto', backgroundColor: theme.panel, borderColor: theme.border }}>
           {activeTab === 'drums' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: 'max-content' }}>
               {/* Step indicators */}
@@ -1153,9 +1431,9 @@ export default function StudioPage() {
                       justifyContent: 'center',
                       fontSize: '0.65rem',
                       fontWeight: 600,
-                      color: '#5a4f43',
+                      color: theme.text,
                       opacity: i % 4 === 0 ? 0.8 : 0.3,
-                      backgroundColor: i === currentStep && isPlaying ? '#8fb8a2' : 'transparent',
+                      backgroundColor: i === currentStep && isPlaying ? theme.accent : 'transparent',
                       borderRadius: '4px',
                       margin: '0 2px'
                     }}
@@ -1200,9 +1478,9 @@ export default function StudioPage() {
                           style={{
                             width: '32px',
                             height: '32px',
-                            border: '2px solid #d1c1af',
+                            border: `2px solid ${theme.border}`,
                             borderRadius: '6px',
-                            backgroundColor: velocity === 0 ? '#fffdf9' : velocity === 1 ? sound.color : `${sound.color}80`,
+                            backgroundColor: velocity === 0 ? theme.panelBg : velocity === 1 ? sound.color : `${sound.color}80`,
                             opacity: stepIndex === currentStep && isPlaying ? 0.8 : 1,
                             cursor: isDragging ? 'crosshair' : 'pointer',
                             margin: '0 2px',
@@ -1233,9 +1511,9 @@ export default function StudioPage() {
                       justifyContent: 'center',
                       fontSize: '0.65rem',
                       fontWeight: 600,
-                      color: '#5a4f43',
+                      color: theme.text,
                       opacity: i % 4 === 0 ? 0.8 : 0.3,
-                      backgroundColor: i === currentStep && isPlaying ? '#ffd166' : 'transparent',
+                      backgroundColor: i === currentStep && isPlaying ? theme.stepHalf : 'transparent',
                       borderRadius: '4px',
                       margin: '0 2px'
                     }}
@@ -1255,9 +1533,9 @@ export default function StudioPage() {
                     <div style={{ 
                       width: '42px', 
                       fontWeight: 600, 
-                      color: isBlack ? '#fffdf9' : '#5a4f43', 
+                      color: isBlack ? theme.panelBg : theme.text, 
                       fontSize: '0.7rem',
-                      backgroundColor: isBlack ? '#5a4f43' : '#e8e4ed',
+                      backgroundColor: isBlack ? theme.text : theme.stepOff,
                       padding: '0.25rem',
                       borderRadius: '4px',
                       textAlign: 'center'
@@ -1292,17 +1570,14 @@ export default function StudioPage() {
                             style={{
                               width: '32px',
                               height: '24px',
-                              border: '2px solid #d1c1af',
+                              border: `2px solid ${theme.border}`,
                               borderRadius: '4px',
-                              backgroundColor: noteData ? '#ffd166' : stepIndex === currentStep && isPlaying ? '#e8e4ed' : isBlack ? '#d1c1af20' : '#fffdf9',
+                              backgroundColor: noteData ? theme.stepHalf : stepIndex === currentStep && isPlaying ? theme.stepOff : isBlack ? `${theme.border}40` : theme.panelBg,
                               opacity: stepIndex === currentStep && isPlaying ? 0.8 : 1,
                               cursor: isDragging ? 'crosshair' : 'pointer',
                               margin: '0 2px',
                               transition: 'all 0.1s ease, transform 0.05s ease',
-                              boxShadow: noteData ? '0 0 4px #ffd166' : 'none',
-                              transform: noteData?.duration === '8n' ? 'scaleX(2.1)' : noteData?.duration === '4n' ? 'scaleX(4.1)' : undefined,
-                              zIndex: noteData?.duration ? 10 : undefined,
-                              marginRight: noteData?.duration === '8n' ? '34px' : noteData?.duration === '4n' ? '100px' : undefined,
+                              boxShadow: noteData ? `0 0 4px ${theme.stepHalf}` : 'none',
                               userSelect: 'none'
                             }}
                             title={`${note} - Step ${stepIndex + 1}${noteData ? ` - ${noteData.duration}` : ''}`}
@@ -1319,8 +1594,8 @@ export default function StudioPage() {
 
         {/* Pattern Chain & Synth Controls */}
         <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <div className="cartoon-panel" style={{ padding: '1rem', flex: 1, minWidth: '200px' }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', color: '#5a4f43', fontSize: '0.9rem' }}>Pattern Chain</h4>
+          <div className="cartoon-panel" style={{ padding: '1rem', flex: 1, minWidth: '200px', backgroundColor: theme.panel, borderColor: theme.border }}>
+            <h4 style={{ margin: '0 0 0.75rem 0', color: theme.text, fontSize: '0.9rem' }}>Pattern Chain</h4>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {chain.map((p, i) => (
                 <div
@@ -1328,10 +1603,10 @@ export default function StudioPage() {
                   onClick={() => setChainIndex(i)}
                   style={{
                     padding: '0.5rem 0.75rem',
-                    backgroundColor: i === chainIndex ? '#8fb8a2' : '#fffdf9',
-                    color: i === chainIndex ? '#fff' : '#5a4f43',
+                    backgroundColor: i === chainIndex ? theme.accent : theme.buttonBg,
+                    color: i === chainIndex ? '#fff' : theme.text,
                     borderRadius: '8px',
-                    border: '3px solid #d1c1af',
+                    border: `3px solid ${theme.border}`,
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer'
@@ -1344,60 +1619,60 @@ export default function StudioPage() {
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
               <select
                 onChange={(e) => e.target.value && setChain([...chain, e.target.value])}
-                style={{ padding: '0.4rem', borderRadius: '8px', border: '3px solid #d1c1af', fontFamily: 'inherit', fontSize: '0.8rem' }}
+                style={{ padding: '0.4rem', borderRadius: '8px', border: `3px solid ${theme.border}`, fontFamily: 'inherit', fontSize: '0.8rem', backgroundColor: theme.inputBg, color: theme.text }}
               >
                 <option value="">Add pattern...</option>
                 {PATTERNS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
-              <button onClick={() => setChain(chain.slice(0, -1))} className="cartoon-button" style={{ fontSize: '0.8rem' }}>
+              <button onClick={() => setChain(chain.slice(0, -1))} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>
                 Remove
               </button>
-              <button onClick={() => setChain(['A1'])} className="cartoon-button" style={{ fontSize: '0.8rem' }}>
+              <button onClick={() => setChain(['A1'])} className="cartoon-button" style={{ fontSize: '0.8rem', backgroundColor: theme.buttonBg, color: theme.text }}>
                 Reset
               </button>
             </div>
           </div>
 
           {activeTab === 'melody' && (
-            <div className="cartoon-panel" style={{ padding: '1rem', flex: 2, minWidth: '300px' }}>
-              <h4 style={{ margin: '0 0 0.75rem 0', color: '#5a4f43', fontSize: '0.9rem' }}>Synthesizer Parameters</h4>
+            <div className="cartoon-panel" style={{ padding: '1rem', flex: 2, minWidth: '300px', backgroundColor: theme.panel, borderColor: theme.border }}>
+              <h4 style={{ margin: '0 0 0.75rem 0', color: theme.text, fontSize: '0.9rem' }}>Synthesizer Parameters</h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#5a4f43' }}>Attack</span>
+                  <span style={{ fontSize: '0.75rem', color: theme.text }}>Attack</span>
                   <input type="range" min="1" max="100" value={synthSettings.attack * 100} onChange={(e) => setSynthSettings({...synthSettings, attack: parseInt(e.target.value) / 100})} style={{ width: '100%' }} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#5a4f43' }}>Decay</span>
+                  <span style={{ fontSize: '0.75rem', color: theme.text }}>Decay</span>
                   <input type="range" min="5" max="200" value={synthSettings.decay * 100} onChange={(e) => setSynthSettings({...synthSettings, decay: parseInt(e.target.value) / 100})} style={{ width: '100%' }} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#5a4f43' }}>Sustain</span>
+                  <span style={{ fontSize: '0.75rem', color: theme.text }}>Sustain</span>
                   <input type="range" min="0" max="100" value={synthSettings.sustain * 100} onChange={(e) => setSynthSettings({...synthSettings, sustain: parseInt(e.target.value) / 100})} style={{ width: '100%' }} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#5a4f43' }}>Release</span>
+                  <span style={{ fontSize: '0.75rem', color: theme.text }}>Release</span>
                   <input type="range" min="5" max="100" value={synthSettings.release * 100} onChange={(e) => setSynthSettings({...synthSettings, release: parseInt(e.target.value) / 100})} style={{ width: '100%' }} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#5a4f43' }}>Filter Cutoff</span>
+                  <span style={{ fontSize: '0.75rem', color: theme.text }}>Filter Cutoff</span>
                   <input type="range" min="100" max="10000" value={synthSettings.filterCutoff} onChange={(e) => setSynthSettings({...synthSettings, filterCutoff: parseInt(e.target.value)})} style={{ width: '100%' }} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: '#5a4f43' }}>Resonance</span>
+                  <span style={{ fontSize: '0.75rem', color: theme.text }}>Resonance</span>
                   <input type="range" min="1" max="20" value={synthSettings.filterResonance} onChange={(e) => setSynthSettings({...synthSettings, filterResonance: parseInt(e.target.value)})} style={{ width: '100%' }} />
                 </div>
               </div>
             </div>
           )}
 
-          <div className="cartoon-panel" style={{ padding: '1rem', minWidth: '200px' }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', color: '#5a4f43', fontSize: '0.9rem' }}>Project</h4>
+          <div className="cartoon-panel" style={{ padding: '1rem', minWidth: '200px', backgroundColor: theme.panel, borderColor: theme.border }}>
+            <h4 style={{ margin: '0 0 0.75rem 0', color: theme.text, fontSize: '0.9rem' }}>Project</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <button onClick={exportPattern} className="cartoon-button" style={{ fontSize: '0.85rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <button onClick={exportPattern} className="cartoon-button" style={{ fontSize: '0.85rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: theme.buttonBg, color: theme.text }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 Save Project
               </button>
-              <label className="cartoon-button" style={{ fontSize: '0.85rem', cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <label className="cartoon-button" style={{ fontSize: '0.85rem', cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: theme.buttonBg, color: theme.text }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
                 Load Project
                 <input type="file" accept=".json" onChange={importPattern} style={{ display: 'none' }} />
@@ -1415,7 +1690,7 @@ export default function StudioPage() {
                   }
                 }} 
                 className="cartoon-button" 
-                style={{ fontSize: '0.85rem', width: '100%', backgroundColor: isRecording ? '#e74c3c' : '#fffdf9' }}
+                style={{ fontSize: '0.85rem', width: '100%', backgroundColor: isRecording ? '#e74c3c' : theme.buttonBg, color: isRecording ? '#fff' : theme.text }}
               >
                 {isRecording ? (
                   <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.5rem' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>Stop Recording</>
@@ -1423,7 +1698,7 @@ export default function StudioPage() {
                   <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '0.5rem' }}><circle cx="12" cy="12" r="10"/></svg>Record</>
                 )}
               </button>
-              <button onClick={exportToWav} className="cartoon-button" style={{ fontSize: '0.85rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} disabled={recordedChunks.length === 0}>
+              <button onClick={exportToWav} className="cartoon-button" style={{ fontSize: '0.85rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: theme.buttonBg, color: theme.text }} disabled={recordedChunks.length === 0}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export Audio
               </button>
@@ -1432,9 +1707,9 @@ export default function StudioPage() {
         </div>
 
         {/* Instructions */}
-        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#fffdf9', borderRadius: '16px', border: '3px solid #d1c1af' }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#5a4f43', fontSize: '1rem' }}>Quick Reference</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.85rem', color: '#5a4f43', opacity: 0.8 }}>
+        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: theme.panel, borderRadius: '16px', border: `3px solid ${theme.border}` }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: theme.text, fontSize: '1rem' }}>Quick Reference</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.85rem', color: theme.text, opacity: 0.8 }}>
             <div>
               <strong>Drum Machine:</strong><br/>
               • Click once = Full velocity<br/>

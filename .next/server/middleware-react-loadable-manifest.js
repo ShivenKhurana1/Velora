@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST="{\"components/MusicPlayer.jsx -> react-youtube\":{\"id\":\"components/MusicPlayer.jsx -> react-youtube\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_react-youtube_dist_YouTube_esm_js.js\"]}}"

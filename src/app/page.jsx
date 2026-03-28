@@ -104,6 +104,11 @@ export default function Page() {
 
   const isIdle = useIdle(8000);
 
+  // Sync background color to studio-compatible localStorage key
+  useEffect(() => {
+    localStorage.setItem('velora-background-color', bgColor);
+  }, [bgColor]);
+
   if (!isOpen) {
     return (
       <main style={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: bgColor }}>
