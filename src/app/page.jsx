@@ -64,6 +64,22 @@ const widgetAnimation = {
   transition: { duration: 0.35, type: 'spring', bounce: 0.3 }
 };
 
+// Studio link component
+function StudioLink() {
+  return (
+    <a href="/studio" style={{ textDecoration: 'none' }}>
+      <motion.div variants={itemVariants} style={{ marginTop: '0.75rem' }}>
+        <button className="cartoon-button" style={{ width: '100%', textAlign: 'left', padding: '0.7rem 1rem', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#fffdf9' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+          Music Studio →
+        </button>
+      </motion.div>
+    </a>
+  );
+}
+
 export default function Page() {
   const [isOpen, setIsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -139,6 +155,8 @@ export default function Page() {
                     ))}
                   </div>
                 </motion.div>
+
+                <StudioLink />
               </motion.div>
             )}
           </AnimatePresence>

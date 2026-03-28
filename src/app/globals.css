@@ -104,3 +104,9 @@ h1, h2, h3, p {
   background-color: #ffd166; /* warm yellow on hover */
   border-color: #fff;
 }
+
+/* Studio page scrolling override */
+body:has(.studio-page) {
+  overflow: auto;
+  height: auto;
+}
