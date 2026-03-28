@@ -1,4 +1,5 @@
 {
   "/page": "app/page.js",
+  "/api/youtube/playlists/route": "app/api/youtube/playlists/route.js",
   "/studio/page": "app/studio/page.js"
 }
