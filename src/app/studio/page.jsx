@@ -918,8 +918,8 @@ function CornerClock({ textColor }) {
         setDrumTrackContextMenu({ visible: false, drumTrackIndex: null, x: 0, y: 0 });
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
   
   // Handle track right-click
@@ -1305,8 +1305,9 @@ function CornerClock({ textColor }) {
     const preset = DEFAULT_INSTRUMENTS[presetIndex];
     if (!preset) return;
     
-    // Update track with preset sound settings but keep name, patterns, etc.
+    // Update track with preset sound settings and name
     updateTrack(trackIndex, {
+      name: preset.name,
       waveform: preset.waveform,
       attack: preset.attack,
       decay: preset.decay,
@@ -1317,6 +1318,9 @@ function CornerClock({ textColor }) {
       filterType: preset.filterType,
       polyphony: preset.polyphony,
     });
+    
+    // Close the context menu after changing preset
+    setTrackContextMenu({ visible: false, trackIndex: null, x: 0, y: 0 });
   };
   
   // Add a new instrument track
@@ -2433,31 +2437,37 @@ function CornerClock({ textColor }) {
                     <div style={{ fontSize: '0.7rem', color: theme.textMuted, marginBottom: '0.5rem' }}>
                       Change Instrument Type
                     </div>
-                    {DEFAULT_INSTRUMENTS.map((preset, presetIndex) => (
-                      <button
-                        key={preset.id}
-                        onClick={() => changeTrackPreset(trackContextMenu.trackIndex, presetIndex)}
-                        style={{
-                          width: '100%',
-                          padding: '0.4rem 0.5rem',
-                          border: 'none',
-                          backgroundColor: track?.id?.includes(preset.id) ? 'rgba(143, 184, 162, 0.2)' : theme.panelBg,
-                          color: theme.text,
-                          borderRadius: '6px',
-                          marginBottom: '0.15rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          fontSize: '0.8rem'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.buttonActive}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = track?.id?.includes(preset.id) ? 'rgba(143, 184, 162, 0.2)' : theme.panelBg}
-                      >
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: preset.color }} />
-                        {preset.name}
-                      </button>
-                    ))}
+                    {DEFAULT_INSTRUMENTS.map((preset, presetIndex) => {
+                      const trackIndex = trackContextMenu.trackIndex;
+                      return (
+                        <button
+                          key={preset.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            changeTrackPreset(trackIndex, presetIndex);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.4rem 0.5rem',
+                            border: 'none',
+                            backgroundColor: theme.panelBg,
+                            color: theme.text,
+                            borderRadius: '6px',
+                            marginBottom: '0.15rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.8rem'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.buttonActive}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.panelBg}
+                        >
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: preset.color }} />
+                          {preset.name}
+                        </button>
+                      );
+                    })}
                   </div>
                   
                   {/* Delete option */}
@@ -2677,16 +2687,17 @@ function CornerClock({ textColor }) {
               </div>
 
               {/* Drum rows with velocity */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                onMouseUp={() => setIsDragging(false)}
+                onMouseLeave={() => setIsDragging(false)}
+              >
               {DRUM_SOUNDS.map((sound, soundIndex) => (
                 <div key={sound.name} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{ width: '110px', fontWeight: 700, color: sound.color, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: sound.color }} />
                     {sound.name}
                   </div>
-                  <div style={{ display: 'flex', gap: '2px' }}
-                    onMouseUp={() => setIsDragging(false)}
-                    onMouseLeave={() => setIsDragging(false)}
-                  >
+                  <div style={{ display: 'flex', gap: '2px' }}>
                     {currentDrumPattern[soundIndex].map((velocity, stepIndex) => {
                       const isOn = velocity > 0;
                       return (
@@ -2728,9 +2739,13 @@ function CornerClock({ textColor }) {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 'max-content' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 'max-content' }}
+              onMouseUp={() => setIsDragging(false)}
+              onMouseLeave={() => setIsDragging(false)}
+            >
               {/* Step indicators */}
               <div style={{ display: 'flex', paddingLeft: '50px' }}>
                 {Array.from({ length: trackLength }, (_, i) => (
@@ -2775,10 +2790,7 @@ function CornerClock({ textColor }) {
                     }}>
                       {note}
                     </div>
-                    <div style={{ display: 'flex', gap: '2px' }}
-                      onMouseUp={() => setIsDragging(false)}
-                      onMouseLeave={() => setIsDragging(false)}
-                    >
+                    <div style={{ display: 'flex', gap: '2px' }}>
                       {currentMelodyPattern[actualIndex].map((noteData, stepIndex) => {
                         const isOn = !!noteData;
                         const activeTrackColor = customTracks[activeTrackIndex]?.color || theme.stepHalf;
